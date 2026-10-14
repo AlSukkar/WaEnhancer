@@ -1,0 +1,18 @@
+diff --git a/app/src/main/java/com/wmods/wppenhacer/xposed/features/general/Others.kt b/app/src/main/java/com/wmods/wppenhacer/xposed/features/general/Others.kt
+index c948253..2c27d75 100644
+--- a/app/src/main/java/com/wmods/wppenhacer/xposed/features/general/Others.kt
++++ b/app/src/main/java/com/wmods/wppenhacer/xposed/features/general/Others.kt
+@@ -112,8 +112,11 @@ class Others(loader: ClassLoader, preferences: SharedPreferences) : Feature(load
+         // change page id
+         propsBoolean[2358] = false
+ 
+-        // disable contact filter
+-        propsBoolean[7769] = false
++        // disable contact filter (skipped when the native chat filter row is enabled,
++        // otherwise the "+" add custom list chip can be hidden - issue #838)
++        if (!filterSeen) {
++            propsBoolean[7769] = false
++        }
+ 
+         // disable new Media Picker
+         propsBoolean[9286] = false
