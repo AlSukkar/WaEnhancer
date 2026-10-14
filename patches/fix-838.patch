@@ -1,18 +1,54 @@
 diff --git a/app/src/main/java/com/wmods/wppenhacer/xposed/features/general/Others.kt b/app/src/main/java/com/wmods/wppenhacer/xposed/features/general/Others.kt
-index c948253..2c27d75 100644
+index c948253..cd2dcb9 100644
 --- a/app/src/main/java/com/wmods/wppenhacer/xposed/features/general/Others.kt
 +++ b/app/src/main/java/com/wmods/wppenhacer/xposed/features/general/Others.kt
-@@ -112,8 +112,11 @@ class Others(loader: ClassLoader, preferences: SharedPreferences) : Feature(load
-         // change page id
-         propsBoolean[2358] = false
+@@ -83,12 +83,12 @@ class Others(loader: ClassLoader, preferences: SharedPreferences) : Feature(load
  
--        // disable contact filter
+         propsInteger[3877] = if (oldStatus) (if (igstatus) 2 else 0) else 2
+ 
+-        propsBoolean[18250] = false
+-        propsBoolean[11528] = false
++        if (!filterSeen) propsBoolean[18250] = false // #838 test
++        if (!filterSeen) propsBoolean[11528] = false // #838 test
+ 
+         propsBoolean[4497] = menuWIcons
+-        propsBoolean[4023] = false
+-        propsBoolean[16250] = false
++        if (!filterSeen) propsBoolean[4023] = false // #838 test
++        if (!filterSeen) propsBoolean[16250] = false // #838 test
+ 
+         if (newSettings == 2) {
+             WppCore.homeActivityClass.resolve().method {
+@@ -110,10 +110,10 @@ class Others(loader: ClassLoader, preferences: SharedPreferences) : Feature(load
+         propsBoolean[15708] = true
+ 
+         // change page id
+-        propsBoolean[2358] = false
++        if (!filterSeen) propsBoolean[2358] = false // #838 test
+ 
+         // disable contact filter
 -        propsBoolean[7769] = false
-+        // disable contact filter (skipped when the native chat filter row is enabled,
-+        // otherwise the "+" add custom list chip can be hidden - issue #838)
-+        if (!filterSeen) {
-+            propsBoolean[7769] = false
-+        }
++        if (!filterSeen) propsBoolean[7769] = false // #838 test
  
          // disable new Media Picker
          propsBoolean[9286] = false
+@@ -124,8 +124,8 @@ class Others(loader: ClassLoader, preferences: SharedPreferences) : Feature(load
+         propsBoolean[9051] = true
+ 
+         // disable new toolbar
+-        propsBoolean[11824] = false
+-        propsBoolean[6481] = false
++        if (!filterSeen) propsBoolean[11824] = false // #838 test
++        if (!filterSeen) propsBoolean[6481] = false // #838 test
+ 
+         // Enable music in Stories
+         propsBoolean[13591] = true
+@@ -221,7 +221,7 @@ class Others(loader: ClassLoader, preferences: SharedPreferences) : Feature(load
+         propsBoolean[13957] = true
+ 
+         // new popup menu in chat
+-        propsBoolean[21541] = false
++        if (!filterSeen) propsBoolean[21541] = false // #838 test
+ 
+         hookProps()
+         hookSearchbar(filterChats)
