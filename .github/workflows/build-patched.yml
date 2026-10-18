@@ -1,115 +1,115 @@
-name: Build patched WaEnhancer
+# name: Build patched WaEnhancer
 
-on:
-  schedule:
-    - cron: "17 */6 * * *"   # check upstream every 6 hours
-  workflow_dispatch:
-    inputs:
-      force:
-        description: "Rebuild even if this upstream commit was already built"
-        type: boolean
-        default: false
+# on:
+#   schedule:
+#     - cron: "17 */6 * * *"   # check upstream every 6 hours
+#   workflow_dispatch:
+#     inputs:
+#       force:
+#         description: "Rebuild even if this upstream commit was already built"
+#         type: boolean
+#         default: false
 
-permissions:
-  contents: write
+# permissions:
+#   contents: write
 
-env:
-  UPSTREAM: Dev4Mod/WaEnhancer
+# env:
+#   UPSTREAM: Dev4Mod/WaEnhancer
 
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout this repo (patches live here)
-        uses: actions/checkout@v7
-        with:
-          path: mine
+# jobs:
+#   build:
+#     runs-on: ubuntu-latest
+#     steps:
+#       - name: Checkout this repo (patches live here)
+#         uses: actions/checkout@v7
+#         with:
+#           path: mine
 
-      - name: Checkout upstream WaEnhancer (latest default branch)
-        uses: actions/checkout@v7
-        with:
-          repository: ${{ env.UPSTREAM }}
-          path: upstream
-          submodules: recursive
+#       - name: Checkout upstream WaEnhancer (latest default branch)
+#         uses: actions/checkout@v7
+#         with:
+#           repository: ${{ env.UPSTREAM }}
+#           path: upstream
+#           submodules: recursive
 
-      - name: Work out upstream commit and whether it is already built
-        id: vars
-        working-directory: upstream
-        env:
-          GH_TOKEN: ${{ github.token }}
-          FORCE: ${{ inputs.force }}
-        run: |
-          SHA=$(git rev-parse --short=8 HEAD)
-          TAG="patched-$SHA"
-          echo "sha=$SHA" >> "$GITHUB_OUTPUT"
-          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
-          if [ "$FORCE" != "true" ] && gh release view "$TAG" --repo "${{ github.repository }}" >/dev/null 2>&1; then
-            echo "skip=true" >> "$GITHUB_OUTPUT"
-            echo "Upstream $SHA already built, nothing to do."
-          else
-            echo "skip=false" >> "$GITHUB_OUTPUT"
-          fi
+#       - name: Work out upstream commit and whether it is already built
+#         id: vars
+#         working-directory: upstream
+#         env:
+#           GH_TOKEN: ${{ github.token }}
+#           FORCE: ${{ inputs.force }}
+#         run: |
+#           SHA=$(git rev-parse --short=8 HEAD)
+#           TAG="patched-$SHA"
+#           echo "sha=$SHA" >> "$GITHUB_OUTPUT"
+#           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+#           if [ "$FORCE" != "true" ] && gh release view "$TAG" --repo "${{ github.repository }}" >/dev/null 2>&1; then
+#             echo "skip=true" >> "$GITHUB_OUTPUT"
+#             echo "Upstream $SHA already built, nothing to do."
+#           else
+#             echo "skip=false" >> "$GITHUB_OUTPUT"
+#           fi
 
-      - name: Apply patches (fails loudly if upstream changed the code)
-        if: steps.vars.outputs.skip != 'true'
-        working-directory: upstream
-        run: |
-          shopt -s nullglob
-          for p in ../mine/patches/*.patch; do
-            echo "Applying $p"
-            git apply --check "$p" || { echo "::error::$p no longer applies to upstream ${{ steps.vars.outputs.sha }}. Upstream may have changed or fixed this code; review the patch."; exit 1; }
-            git apply "$p"
-          done
+#       - name: Apply patches (fails loudly if upstream changed the code)
+#         if: steps.vars.outputs.skip != 'true'
+#         working-directory: upstream
+#         run: |
+#           shopt -s nullglob
+#           for p in ../mine/patches/*.patch; do
+#             echo "Applying $p"
+#             git apply --check "$p" || { echo "::error::$p no longer applies to upstream ${{ steps.vars.outputs.sha }}. Upstream may have changed or fixed this code; review the patch."; exit 1; }
+#             git apply "$p"
+#           done
 
-      - name: Set up JDK 17
-        if: steps.vars.outputs.skip != 'true'
-        uses: actions/setup-java@v5.6.0
-        with:
-          java-version: "17"
-          distribution: "temurin"
-          cache: gradle
-          cache-dependency-path: |
-            upstream/**/*.gradle*
-            upstream/**/gradle-wrapper.properties
-            upstream/gradle/libs.versions.toml
-            upstream/**/gradle.properties
+#       - name: Set up JDK 17
+#         if: steps.vars.outputs.skip != 'true'
+#         uses: actions/setup-java@v5.6.0
+#         with:
+#           java-version: "17"
+#           distribution: "temurin"
+#           cache: gradle
+#           cache-dependency-path: |
+#             upstream/**/*.gradle*
+#             upstream/**/gradle-wrapper.properties
+#             upstream/gradle/libs.versions.toml
+#             upstream/**/gradle.properties
 
-      - name: Write signing key (keeps updates installable over each other)
-        if: steps.vars.outputs.skip != 'true'
-        working-directory: upstream
-        env:
-          KEY_STORE: ${{ secrets.KEY_STORE }}
-          KEY_STORE_PASSWORD: ${{ secrets.KEY_STORE_PASSWORD }}
-          ALIAS: ${{ secrets.ALIAS }}
-          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-        run: |
-          if [ -n "$KEY_STORE" ]; then
-            {
-              echo "androidStorePassword=$KEY_STORE_PASSWORD"
-              echo "androidKeyAlias=$ALIAS"
-              echo "androidKeyPassword=$KEY_PASSWORD"
-              echo "androidStoreFile=key.jks"
-            } >> gradle.properties
-            echo "$KEY_STORE" | base64 --decode > key.jks
-          else
-            echo "::warning::No KEY_STORE secret set. The APK will be signed with a random debug key, so you must uninstall the previous build before installing this one."
-          fi
+#       - name: Write signing key (keeps updates installable over each other)
+#         if: steps.vars.outputs.skip != 'true'
+#         working-directory: upstream
+#         env:
+#           KEY_STORE: ${{ secrets.KEY_STORE }}
+#           KEY_STORE_PASSWORD: ${{ secrets.KEY_STORE_PASSWORD }}
+#           ALIAS: ${{ secrets.ALIAS }}
+#           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+#         run: |
+#           if [ -n "$KEY_STORE" ]; then
+#             {
+#               echo "androidStorePassword=$KEY_STORE_PASSWORD"
+#               echo "androidKeyAlias=$ALIAS"
+#               echo "androidKeyPassword=$KEY_PASSWORD"
+#               echo "androidStoreFile=key.jks"
+#             } >> gradle.properties
+#             echo "$KEY_STORE" | base64 --decode > key.jks
+#           else
+#             echo "::warning::No KEY_STORE secret set. The APK will be signed with a random debug key, so you must uninstall the previous build before installing this one."
+#           fi
 
-      - name: Build WhatsApp variant
-        if: steps.vars.outputs.skip != 'true'
-        working-directory: upstream
-        run: |
-          chmod +x gradlew
-          ./gradlew assembleWhatsappDebug -Pminify=true
+#       - name: Build WhatsApp variant
+#         if: steps.vars.outputs.skip != 'true'
+#         working-directory: upstream
+#         run: |
+#           chmod +x gradlew
+#           ./gradlew assembleWhatsappDebug -Pminify=true
 
-      - name: Publish release in this repo
-        if: steps.vars.outputs.skip != 'true'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          APK=$(ls upstream/app/build/outputs/apk/whatsapp/debug/WaEnhancer*.apk | head -n1)
-          gh release delete "${{ steps.vars.outputs.tag }}" --repo "${{ github.repository }}" --yes --cleanup-tag 2>/dev/null || true
-          gh release create "${{ steps.vars.outputs.tag }}" "$APK" \
-            --repo "${{ github.repository }}" \
-            --title "WaEnhancer + fix #838 (upstream ${{ steps.vars.outputs.sha }})" \
-            --notes "Upstream https://github.com/${{ env.UPSTREAM }}/commit/${{ steps.vars.outputs.sha }} with patches from /patches applied."
+#       - name: Publish release in this repo
+#         if: steps.vars.outputs.skip != 'true'
+#         env:
+#           GH_TOKEN: ${{ github.token }}
+#         run: |
+#           APK=$(ls upstream/app/build/outputs/apk/whatsapp/debug/WaEnhancer*.apk | head -n1)
+#           gh release delete "${{ steps.vars.outputs.tag }}" --repo "${{ github.repository }}" --yes --cleanup-tag 2>/dev/null || true
+#           gh release create "${{ steps.vars.outputs.tag }}" "$APK" \
+#             --repo "${{ github.repository }}" \
+#             --title "WaEnhancer + fix #838 (upstream ${{ steps.vars.outputs.sha }})" \
+#             --notes "Upstream https://github.com/${{ env.UPSTREAM }}/commit/${{ steps.vars.outputs.sha }} with patches from /patches applied."
